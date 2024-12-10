@@ -69,6 +69,7 @@ interface STMConfig {
     index: number,
     array: unknown[][],
   ) => Record<string, unknown> | null;
+  displayTemplate: string;
 }
 
 type FieldType = 'string' | 'number' | 'boolean' | 'date';
@@ -124,7 +125,7 @@ function field<T extends string | number>(
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function createUpdateRequest(config: STMConfig) {
-  const { lang, collectName, tableMap } = config;
+  const { lang, collectName, displayTemplate, tableMap } = config;
   const t = TEXTS[lang];
 
   // Select active spreadsheet
@@ -143,7 +144,7 @@ function createUpdateRequest(config: STMConfig) {
   const data = sheetsToMongoApiRequest(config, 'post', 'v1/updateRequest', {
     collectName,
     newRows,
-    displayFields: ['nameEnteredManually', 'symbolEnteredManually'],
+    displayTemplate,
   });
 
   if (!data.changes.rowChanges.length) {

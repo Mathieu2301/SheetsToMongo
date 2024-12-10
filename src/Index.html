@@ -72,6 +72,7 @@
     .document-header {
       font-weight: bold;
       margin-bottom: 5px;
+      word-break: break-all;
     }
     .status {
       display: inline-block;
@@ -143,9 +144,7 @@
             <?= row.createDocument ? 'create' : (row.deleteDocument ? 'delete' : 'update') ?>">
             <?= row.createDocument ? '+' : (row.deleteDocument ? '-' : '✎') ?>
           </span>
-          <?= row.documentId ?>:
-          <?= row.displayFields.nameEnteredManually ?>
-          (<?= row.displayFields.symbolEnteredManually ?>)
+          <?= row.documentId ?>: <?= row.displayText ?>
         </div>
         <div class="modifications">
           <? for (const update of row.fieldUpdates) { ?>
