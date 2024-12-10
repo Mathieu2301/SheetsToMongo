@@ -105,22 +105,19 @@ function sheetsToMongoApiRequest(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function field<T extends string | number>(
-  type: FieldType,
-  value: T,
-  defVal: T = undefined,
-) {
+function field(type: FieldType, value: unknown, defVal: unknown = undefined) {
   if (type === 'string') return String(value) || '';
-  if (type === 'number') {
+
+  if (type === 'number')
     return typeof value === 'number' ? Number(value.toPrecision(12)) : defVal;
-  }
-  if (type === 'date') {
-    if (!value) return defVal;
-    return new Date(value).toDateString();
-  }
+
+  if (type === 'date')
+    return value instanceof Date ? value.toDateString() : defVal;
+
+  if (type === 'boolean') return typeof value === 'boolean' ? value : defVal;
 
   const [t] = Object.values(TEXTS);
-  throw new Error(t.ERROR_NOT_SUPPORTED_FIELD_TYPE);
+  throw new Error(`${t.ERROR_NOT_SUPPORTED_FIELD_TYPE} ('${type}')`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
