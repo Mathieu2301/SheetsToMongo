@@ -1,4 +1,33 @@
 const TEXTS = {
+  en: {
+    ERROR_NOT_SUPPORTED_FIELD_TYPE: 'Field type not supported',
+    NO_NEW_CHANGES: 'All changes are already applied!',
+    CONFIRM_CHANGES: 'Confirm changes',
+    PENDING_CHANGES: 'Pending changes...',
+    SHEETS_CREATED_BY_SHEETSTOMONGO: 'Sheet created by SheetsToMongo',
+    ADDITIONS: 'Additions',
+    DELETIONS: 'Deletions',
+    UPDATES: 'Updates',
+    FIELD_NAME: 'Field name',
+    OLD_VALUE: 'Old value',
+    NEW_VALUE: 'New value',
+    TYPE: 'Type',
+    COUNT: 'Count',
+    APPLY_ALL_UPDATES: 'Apply',
+    CANCEL: 'Cancel',
+    APPLIED_UPDATES: 'Applied updates',
+    CREATED_DOCUMENT: 'created document',
+    CREATED_DOCUMENTS: 'created documents',
+    DELETED_DOCUMENT: 'deleted document',
+    DELETED_DOCUMENTS: 'deleted documents',
+    UPDATED_FIELD: 'updated field',
+    UPDATED_FIELDS: 'updated fields',
+    THERE_WAS: 'There was',
+    THERE_WERE: 'There were',
+    ERROR: 'error',
+    ERRORS: 'errors',
+    UPDATE_CANCELED: 'Updates canceled',
+  },
   fr: {
     ERROR_NOT_SUPPORTED_FIELD_TYPE: 'Type de champs non pris en charge',
     NO_NEW_CHANGES: 'Toutes les modifications sont déjà appliquées !',
@@ -137,23 +166,25 @@ function sidebarApplyUpdates(config: STMConfig, requestId: string) {
   );
   const { created, deleted, updated, errors } = data.applyResult;
 
-  const f = (count: number, texts: string) =>
-    `${count} ${texts
-      .split(' ')
-      .map((text) => (count > 1 ? `${text}s` : text))
-      .join(' ')}`;
+  const pairs: Record<string, Pair> = {
+    created: [t.CREATED_DOCUMENT, t.CREATED_DOCUMENTS],
+    deleted: [t.DELETED_DOCUMENT, t.DELETED_DOCUMENTS],
+    updated: [t.UPDATED_FIELD, t.UPDATED_FIELDS],
+    therewas: [t.THERE_WAS, t.THERE_WERE],
+    errors: [t.ERROR, t.ERRORS],
+  };
 
   Browser.msgBox(
     [
       `${t.APPLIED_UPDATES}:`,
       `${[
-        created ? f(created, 'document créé') : null,
-        deleted ? f(deleted, 'document supprimé') : null,
-        updated ? f(updated, 'champ modifié') : null,
+        created ? pl`${created} ${pairs.created}` : null,
+        deleted ? pl`${deleted} ${pairs.deleted}` : null,
+        updated ? pl`${updated} ${pairs.updated}` : null,
       ]
         .filter(Boolean)
         .join(', ')}.`,
-      errors ? `Il y a eu ${f(errors, 'erreur')}.` : null,
+      errors ? pl`${pairs.thereiswas} ${errors} ${pairs.errors}.` : null,
     ]
       .filter(Boolean)
       .join('\n'),
@@ -199,6 +230,40 @@ function sendCommand([command, options]: [
   }
 
   Browser.msgBox(`Invalid command: '${command}'`);
+}
+
+type Pair = [string, string];
+
+/**
+ * Formats a template literal string with a pair of strings.
+ * If there is a number in the arguments, we check if it is
+ * greater than 1. If so, we use the second element of the pair.
+ * Otherwise, we use the first element of the pair.
+ *
+ * @example
+ * pl`${['There was', 'There were']} ${1} ${['error', 'errors']}.`
+ * // -> 'There was 1 error.'
+ * @example
+ * pl`${['There was', 'There were']} ${2} ${['error', 'errors']}.`
+ * // -> 'There were 2 errors.'
+ */
+function pl(
+  strings: TemplateStringsArray,
+  ...args: (Pair | number | string)[]
+) {
+  const count = args.find((arg) => typeof arg === 'number');
+  const index = typeof count === 'number' && Math.abs(count) > 1 ? 1 : 0;
+
+  const formattedArgs = args.map((arg) => {
+    if (typeof arg === 'number') return arg;
+    if (Array.isArray(arg) && arg.length === 2) return arg[index];
+    return arg;
+  });
+
+  return strings.reduce(
+    (acc, string, i) => `${acc}${string}${formattedArgs[i] || ''}`,
+    '',
+  );
 }
 
 /*function logToSheet({ lang }, data) {
