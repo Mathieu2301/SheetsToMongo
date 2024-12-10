@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src",
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "target": "ES2019",
+    "types": ["google-apps-script"],
+    "lib": ["esnext"],
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+  ],
+}

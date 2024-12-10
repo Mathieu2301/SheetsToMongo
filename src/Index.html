@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .additions { color: green }
+    .deletions { color: red }
+    .updates { color: blue }
+    .buttons {
+      margin-top: 10px;
+      text-align: center;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .button-apply {
+      background-color: #4CAF50; /* Vert */
+      color: white;
+    }
+    .button-apply:hover {
+      background-color: #45a049;
+    }
+    .button-cancel {
+      background-color: #f44336; /* Rouge */
+      color: white;
+    }
+    .button-cancel:hover {
+      background-color: #da190b;
+    }
+    .loader {
+      border: 6px solid #f3f3f3; /* Light grey */
+      border-top: 6px solid #3498db; /* Blue */
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      display: none; /* Caché par défaut */
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg) }
+      100% { transform: rotate(360deg) }
+    }
+
+    .document {
+      padding: 10px 0;
+    }
+    .document:not(:first-child) {
+      border-top: 1px solid #ddd;
+    }
+
+    .document-header {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .status {
+      display: inline-block;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .status.create {
+      color: green;
+    }
+    .status.delete {
+      color: red;
+    }
+    .status.update {
+      color: blue;
+    }
+    .modifications {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .modification {
+      margin-bottom: 5px;
+      font-family: monospace;
+    }
+    .modification .values {
+      margin-left: 10px;
+      font-size: 12px;
+      line-height: 15px;
+    }
+    .values .value {
+      word-break: break-all;
+    }
+    .old-value .value {
+      text-decoration: line-through;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <tr>
+      <th><?= t.TYPE ?></th>
+      <th><?= t.COUNT ?></th>
+    </tr>
+    <tr>
+      <td><?= t.ADDITIONS ?></td>
+      <td class="additions"><?= data.changes.stats.additions ?></td>
+    </tr>
+    <tr>
+      <td><?= t.DELETIONS ?></td>
+      <td class="deletions"><?= data.changes.stats.deletions ?></td>
+    </tr>
+    <tr>
+      <td><?= t.UPDATES ?></td>
+      <td class="updates"><?= data.changes.stats.updates ?></td>
+    </tr>
+  </table>
+
+  <div class="buttons" id="button-container">
+    <button class="button button-cancel" onclick="cancelUpdates()"><?= t.CANCEL ?></button>
+    <button class="button button-apply" onclick="applyUpdates()"><?= t.APPLY_ALL_UPDATES ?></button>
+  </div>
+  <div class="loader" id="loader"></div>
+
+  <div id="changes-list">
+    <? for (const row of data.changes.rowChanges) { ?>
+      <div class="document">
+        <div class="document-header">
+          <span class="status 
+            <?= row.createDocument ? 'create' : (row.deleteDocument ? 'delete' : 'update') ?>">
+            <?= row.createDocument ? '+' : (row.deleteDocument ? '-' : '✎') ?>
+          </span>
+          <?= row.documentId ?>:
+          <?= row.displayFields.nameEnteredManually ?>
+          (<?= row.displayFields.symbolEnteredManually ?>)
+        </div>
+        <div class="modifications">
+          <? for (const update of row.fieldUpdates) { ?>
+            <div class="modification">
+              <div><?= update.fieldName ?></div>
+              <div class="values">
+                <? if (update.oldValue !== undefined) { ?>
+                  <div class="old-value">
+                    <span class="status delete">-</span>
+                    <span class="value"><?= JSON.stringify(update.oldValue) ?></span>
+                  </div>
+                <? } ?>
+                <? if (update.newValue !== undefined) { ?>
+                  <div class="new-value">
+                    <span class="status create">+</span>
+                    <span class="value"><?= JSON.stringify(update.newValue) ?></span>
+                  </div>
+                <? } ?>
+              </div>
+            </div>
+          <? } ?>
+        </div>
+      </div>
+    <? } ?>
+  </div>
+  <script>
+    const config = JSON.parse(<?= strConfig ?>);
+    const requestId = <?= data.requestId ?>;
+    // const t = JSON.parse(<?= strT ?>);
+
+    async function applyUpdates() {
+      setLoading();
+      google.script.run
+        .withSuccessHandler(closePage)
+        .withFailureHandler(showError)
+        .sendCommand('ApplyUpdateRequest', { config, requestId });
+    }
+
+    function cancelUpdates() {
+      setLoading();
+      google.script.run
+        .withSuccessHandler(closePage)
+        .withFailureHandler(showError)
+        .sendCommand('CancelUpdateRequest', { config, requestId });
+    }
+
+    function showError(error) {
+      alert(error);
+      setLoading(false);
+    }
+
+    function closePage() {
+      google.script.host.close();
+    }
+
+    function setLoading(value = true) {
+      // Afficher le loader et masquer les boutons
+      const show = (v) => v ? 'block' : 'none';
+      document.getElementById('button-container').style.display = show(!value);
+      document.getElementById('loader').style.display = show(value);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "sheets-to-mongo",
+  "version": "1.0.0",
+  "main": "src/Code.ts",
+  "author": "Mathieu Colmon <mathieu@colmon.fr>",
+  "license": "MIT",
+  "scripts": {
+    "push": "clasp push",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "@types/google-apps-script": "^1.0.86",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.16.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0"
+  }
+}
