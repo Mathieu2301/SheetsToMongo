@@ -5,6 +5,7 @@ const TEXTS = {
     CONFIRM_CHANGES: 'Confirm changes',
     PENDING_CHANGES: 'Pending changes...',
     SHEETS_CREATED_BY_SHEETSTOMONGO: 'Sheet created by SheetsToMongo',
+    TOO_MANY_CHANGES: 'Too many changes, only the first 100 will be displayed',
     ADDITIONS: 'Additions',
     DELETIONS: 'Deletions',
     UPDATES: 'Updates',
@@ -34,6 +35,8 @@ const TEXTS = {
     CONFIRM_CHANGES: 'Confirmer les modifications',
     PENDING_CHANGES: 'Modifications en attente...',
     SHEETS_CREATED_BY_SHEETSTOMONGO: 'Feuille crée par SheetsToMongo',
+    TOO_MANY_CHANGES:
+      'Trop de modifications, seuls les 100 premières seront affichées',
     ADDITIONS: 'Ajouts',
     DELETIONS: 'Suppressions',
     UPDATES: 'Modifications',
@@ -72,14 +75,46 @@ interface STMConfig {
   displayTemplate: string;
 }
 
-type FieldType = 'string' | 'number' | 'boolean' | 'date';
+type FieldType = 'string' | 'number' | 'boolean' | 'date' | 'datetime';
 
-function sheetsToMongoApiRequest(
+interface UpdateRequestResponse {
+  requestId: string;
+  changes: {
+    stats: {
+      additions: number;
+      deletions: number;
+      updates: number;
+    };
+    rowChanges: {
+      documentId: number;
+      fieldUpdates: {
+        fieldName: string;
+        oldValue?: string | number | boolean | Date;
+        newValue?: string | number | boolean | Date;
+      }[];
+      displayText: string;
+      deleteDocument?: true;
+      createDocument?: true;
+    }[];
+  };
+}
+
+interface ApplyRequestResponse {
+  applyResult: {
+    created: number;
+    deleted: number;
+    updated: number;
+    errors: number;
+    _time: Date;
+  };
+}
+
+function sheetsToMongoApiRequest<T>(
   config: STMConfig,
   method: GoogleAppsScript.URL_Fetch.HttpMethod,
   endpoint: string,
   payload: object = undefined,
-) {
+): T {
   // Define the URL of the API Endpoint
   const apiEndpointUrl = `${config.apiUrl}/${endpoint}`;
 
@@ -114,6 +149,8 @@ function field(type: FieldType, value: unknown, defVal: unknown = undefined) {
   if (type === 'date')
     return value instanceof Date ? value.toDateString() : defVal;
 
+  if (type === 'datetime') return value instanceof Date ? value : defVal;
+
   if (type === 'boolean') return typeof value === 'boolean' ? value : defVal;
 
   const [t] = Object.values(TEXTS);
@@ -138,11 +175,16 @@ function createUpdateRequest(config: STMConfig) {
     .map(tableMap)
     .filter(Boolean);
 
-  const data = sheetsToMongoApiRequest(config, 'post', 'v1/updateRequest', {
-    collectName,
-    newRows,
-    displayTemplate,
-  });
+  const data = sheetsToMongoApiRequest<UpdateRequestResponse>(
+    config,
+    'post',
+    'v1/updateRequest',
+    {
+      collectName,
+      newRows,
+      displayTemplate,
+    },
+  );
 
   if (!data.changes.rowChanges.length) {
     Browser.msgBox(t.NO_NEW_CHANGES);
@@ -157,7 +199,7 @@ function sidebarApplyUpdates(config: STMConfig, requestId: string) {
   const t = TEXTS[config.lang];
   // closeDiffTableSheet();
 
-  const data = sheetsToMongoApiRequest(
+  const data = sheetsToMongoApiRequest<ApplyRequestResponse>(
     config,
     'post',
     `v1/updateRequest/${requestId}/apply`,
@@ -195,10 +237,18 @@ function sidebarCancelUpdates(config: STMConfig) {
   Browser.msgBox(t.UPDATE_CANCELED);
 }
 
-function createDiffTableSidebar(config: STMConfig, data: unknown) {
+function createDiffTableSidebar(
+  config: STMConfig,
+  data: UpdateRequestResponse,
+) {
   const t = TEXTS[config.lang];
 
   const template = HtmlService.createTemplateFromFile('Index');
+
+  if (data.changes.rowChanges.length > 100) {
+    Browser.msgBox(t.TOO_MANY_CHANGES);
+    data.changes.rowChanges = data.changes.rowChanges.slice(0, 100);
+  }
 
   template.data = data;
   template.config = config;
