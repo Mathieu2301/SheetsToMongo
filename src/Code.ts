@@ -135,6 +135,7 @@ function sheetsToMongoApiRequest<T>(
     const content = response.getContentText();
     return JSON.parse(content);
   } catch (e) {
+    Logger.log({ payload: payload ? JSON.stringify(payload) : undefined });
     Browser.msgBox(e.message);
   }
 }
